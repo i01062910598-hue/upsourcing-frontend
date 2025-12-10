@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>업소싱 도구 - 쇼핑몰 수집</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
+          sans-serif;
+        background: #f5f7fb;
+        color: #222;
+      }
+
+      /* 상단 헤더 + 네비게이션 */
+      header {
+        background: linear-gradient(90deg, #ffb74d, #ff7043);
+        padding: 14px 32px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        color: #fff;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+
+      .logo {
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+      }
+
+      nav {
+        display: flex;
+        gap: 8px;
+      }
+
+      .nav-btn {
+        border: none;
+        background: rgba(255, 255, 255, 0.15);
+        color: #fff;
+        padding: 8px 14px;
+        border-radius: 999px;
+        font-size: 13px;
+        cursor: pointer;
+        transition: background 0.15s ease, transform 0.05s ease;
+      }
+
+      .nav-btn:hover {
+        background: rgba(255, 255, 255, 0.25);
+        transform: translateY(-1px);
+      }
+
+      .nav-btn.active {
+        background: #fff;
+        color: #ff7043;
+        font-weight: 600;
+      }
+
+      .container {
+        max-width: 1120px;
+        margin: 24px auto 40px;
+        padding: 0 16px;
+      }
+
+      .section {
+        display: none;
+      }
+
+      .section.active {
+        display: block;
+      }
+
+      .section-title {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 12px;
+      }
+
+      .section-sub {
+        font-size: 13px;
+        color: #777;
+        margin-bottom: 20px;
+      }
+
+      /* BEST소싱 폼 */
+      .best-form {
+        background: #ffffff;
+        border-radius: 14px;
+        padding: 18px 20px;
+        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+        margin-bottom: 20px;
+        display: grid;
+        grid-template-columns: 2.5fr 1fr 1fr auto;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .field-group {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .field-label {
+        font-size: 11px;
+        color: #666;
+      }
+
+      .field-input {
+        height: 34px;
+        border-radius: 8px;
+        border: 1px solid #d0d7e2;
+        padding: 0 10px;
+        font-size: 13px;
+      }
+
+      .field-input:focus {
+        outline: none;
+        border-color: #ff7043;
+        box-shadow: 0 0 0 2px rgba(255, 112, 67, 0.16);
+      }
+
+      .btn-primary {
+        border: none;
+        height: 36px;
+        padding: 0 18px;
+        border-radius: 999px;
+        background: #ff7043;
+        color: #fff;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: background 0.15s ease, transform 0.05s ease;
+      }
+
+      .btn-primary:hover {
+        background: #ff5722;
+        transform: translateY(-1px);
+      }
+
+      .btn-sub {
+        border: none;
+        height: 32px;
+        padding: 0 12px;
+        border-radius: 999px;
+        background: #e3f2fd;
+        color: #1565c0;
+        font-size: 12px;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      .btn-danger {
+        border: none;
+        height: 32px;
+        padding: 0 12px;
+        border-radius: 999px;
+        background: #ef5350;
+        color: #fff;
+        font-size: 12px;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      /* 쇼핑몰 카드 리스트 */
+      .mall-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 14px;
+      }
+
+      .mall-card {
+        background: #ffffff;
+        border-radius: 14px;
+        padding: 14px 14px 12px;
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        cursor: pointer;
+        transition: transform 0.06s ease, box-shadow 0.1s ease;
+      }
+
+      .mall-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.09);
+      }
+
+      .mall-logo {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        background: #f0f2f7;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        flex-shrink: 0;
+      }
+
+      .mall-logo img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .mall-info {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .mall-name {
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .mall-meta {
+        font-size: 11px;
+        color: #888;
+      }
+
+      .mall-tag {
+        font-size: 11px;
+        color: #ff7043;
+        background: rgba(255, 112, 67, 0.08);
+        border-radius: 999px;
+        padding: 2px 8px;
+        display: inline-block;
+        margin-top: 4px;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 8px;
+        border-radius: 999px;
+        background: #e3f2fd;
+        color: #1976d2;
+        font-size: 11px;
+      }
+
+      .badge-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #4caf50;
+      }
+
+      .empty-text {
+        font-size: 13px;
+        color: #999;
+        padding: 18px 4px;
+      }
+
+      /* 수집된 쇼핑몰 툴바 */
+      .mall-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+
+      .mall-toolbar input {
+        height: 32px;
+        border-radius: 999px;
+        border: 1px solid #d0d7e2;
+        padding: 0 12px;
+        font-size: 12px;
+        min-width: 180px;
+      }
+
+      .mall-toolbar select {
+        height: 32px;
+        border-radius: 999px;
+        border: 1px solid #d0d7e2;
+        padding: 0 10px;
+        font-size: 12px;
+      }
+
+      /* 다른 탭용 기본 박스 */
+      .stub-box {
+        background: #ffffff;
+        border-radius: 14px;
+        padding: 18px 20px;
+        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+        font-size: 13px;
+        color: #666;
+      }
+
+      @media (max-width: 800px) {
+        .best-form {
+          grid-template-columns: 1fr;
+        }
+
+        header {
+          padding: 10px 14px;
+        }
+
+        nav {
+          gap: 4px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="logo">업소싱 도구 · 해외구매대행 소싱</div>
+      <nav>
+        <button class="nav-btn active" data-target="best">BEST소싱</button>
+        <button class="nav-btn" data-target="malls">수집된 쇼핑몰</button>
+        <button class="nav-btn" data-target="upload">상품 업로드</button>
+        <button class="nav-btn" data-target="settings">설정</button>
+      </nav>
+    </header>
+
+    <main class="container">
+      <!-- BEST소싱 -->
+      <section id="section-best" class="section active">
+        <h2 class="section-title">스마트스토어 BEST 소싱</h2>
+        <p class="section-sub">
+          키워드를 입력하면, 해당 키워드로 팔린 이력이 있는 스마트스토어 쇼핑몰을
+          수집합니다. (현재는 더미 데이터로 연결 테스트 중)
+        </p>
+
+        <form id="collectForm" class="best-form">
+          <div class="field-group">
+            <span class="field-label">검색 키워드</span>
+            <input
+              type="text"
+              id="keywordInput"
+              class="field-input"
+              placeholder="예: 스타킹, 니트, 남자 맨투맨"
+              required
+            />
+          </div>
+
+          <div class="field-group">
+            <span class="field-label">최소 가격</span>
+            <input
+              type="number"
+              id="minPriceInput"
+              class="field-input"
+              placeholder="예: 10000"
+            />
+          </div>
+
+          <div class="field-group">
+            <span class="field-label">최대 가격</span>
+            <input
+              type="number"
+              id="maxPriceInput"
+              class="field-input"
+              placeholder="예: 200000"
+            />
+          </div>
+
+          <button type="submit" class="btn-primary">쇼핑몰 수집</button>
+        </form>
+
+        <div style="margin-bottom: 8px; font-size: 12px; color: #888">
+          <span class="badge">
+            <span class="badge-dot"></span>
+            로컬 백엔드: http://127.0.0.1:8000 에 연결 중
+          </span>
+        </div>
+
+        <div id="mallList" class="mall-list"></div>
+        <div id="mallEmpty" class="empty-text" style="display: none">
+          아직 수집된 쇼핑몰이 없습니다. 키워드를 입력하고
+          <strong>쇼핑몰 수집</strong> 버튼을 눌러주세요.
+        </div>
+      </section>
+
+      <!-- 수집된 쇼핑몰 -->
+      <section id="section-malls" class="section">
+        <h2 class="section-title">수집된 쇼핑몰</h2>
+        <p class="section-sub">
+          BEST소싱 탭에서 수집한 쇼핑몰 목록을 한 번에 확인합니다.
+        </p>
+
+        <div class="mall-toolbar">
+          <input
+            type="text"
+            id="mallFilterInput"
+            placeholder="키워드 또는 쇼핑몰명 검색"
+          />
+          <select id="mallSortSelect">
+            <option value="recent">최근 수집순</option>
+            <option value="name">이름 순</option>
+            <option value="oldest">오래된 순</option>
+          </select>
+          <button id="mallReloadBtn" class="btn-sub">새로고침</button>
+          <button id="mallClearBtn" class="btn-danger">전체 삭제</button>
+        </div>
+
+        <div id="mallList2" class="mall-list"></div>
+        <div id="mallEmpty2" class="empty-text" style="display: none">
+          아직 수집된 쇼핑몰이 없습니다.
+        </div>
+      </section>
+
+      <!-- 상품 업로드 -->
+      <section id="section-upload" class="section">
+        <h2 class="section-title">상품 업로드 (준비중)</h2>
+        <p class="section-sub">
+          픽아이의 "상품 업로드" 화면처럼, 수집된 상품을 스마트스토어 / 쿠팡 /
+          11번가 등으로 업로드하는 영역입니다.
+        </p>
+        <div class="stub-box">
+          · 이후 단계에서, 업로드 대기 상품 리스트 / 상세 편집 / 업로드 버튼 등을
+          이 영역에 구성할 예정입니다.  
+          <br />· 일단은 BEST소싱 → 쇼핑몰 수집 기능을 먼저 완성하고, 그
+          다음에 상품 업로드 로직을 붙이는 순서로 진행하겠습니다.
+        </div>
+      </section>
+
+      <!-- 설정 -->
+      <section id="section-settings" class="section">
+        <h2 class="section-title">설정 (마켓 API 연동 예정)</h2>
+        <p class="section-sub">
+          스마트스토어 / 쿠팡 / 11번가 API 키, 마진율, 출고 소요일 등 각종 설정을
+          관리하는 영역입니다.
+        </p>
+        <div class="stub-box">
+          · 현재는 UI 뼈대만 만들어 둔 상태입니다.  
+          <br />· 나중에 픽아이의 "설정" 화면처럼, 각 마켓 API 키와 아이디를
+          입력하는 폼을 이 영역에 구성할 예정입니다.
+        </div>
+      </section>
+    </main>
+
+    <script>
+      // --------------------------
+      // 탭 전환
+      // --------------------------
+      const navButtons = document.querySelectorAll(".nav-btn");
+      const sections = {
+        best: document.getElementById("section-best"),
+        malls: document.getElementById("section-malls"),
+        upload: document.getElementById("section-upload"),
+        settings: document.getElementById("section-settings"),
+      };
+
+      navButtons.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          navButtons.forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+
+          const target = btn.dataset.target;
+          Object.keys(sections).forEach((key) => {
+            sections[key].classList.toggle("active", key === target);
+          });
+
+          if (target === "malls") {
+            loadMalls(true); // 두 번째 탭용
+          }
+        });
+      });
+
+      // --------------------------
+      // 백엔드 주소 (지금은 로컬)
+      // --------------------------
+      const API_BASE = "http://127.0.0.1:8000";
+
+      const mallList = document.getElementById("mallList");
+      const mallEmpty = document.getElementById("mallEmpty");
+      const mallList2 = document.getElementById("mallList2");
+      const mallEmpty2 = document.getElementById("mallEmpty2");
+
+      const mallFilterInput = document.getElementById("mallFilterInput");
+      const mallSortSelect = document.getElementById("mallSortSelect");
+      const mallReloadBtn = document.getElementById("mallReloadBtn");
+      const mallClearBtn = document.getElementById("mallClearBtn");
+
+      // --------------------------
+      // 쇼핑몰 카드 렌더링
+      // --------------------------
+      function renderMallList(malls, targetList, emptyEl) {
+        targetList.innerHTML = "";
+
+        if (!malls || malls.length === 0) {
+          emptyEl.style.display = "block";
+          return;
+        }
+
+        emptyEl.style.display = "none";
+
+        malls.forEach((mall) => {
+          const card = document.createElement("div");
+          card.className = "mall-card";
+
+          card.innerHTML = `
+            <div class="mall-logo">
+              <img src="${
+                mall.logo_url ||
+                "https://via.placeholder.com/64x64?text=M"
+              }" alt="logo">
+            </div>
+            <div class="mall-info">
+              <div class="mall-name">${mall.name}</div>
+              <div class="mall-meta">
+                키워드: ${mall.keyword || "-"}<br>
+                최근 수집: ${
+                  mall.last_collected_at
+                    ? new Date(mall.last_collected_at).toLocaleString()
+                    : "-"
+                }
+              </div>
+              <div class="mall-tag">스마트스토어</div>
+            </div>
+          `;
+
+          card.addEventListener("click", () => {
+            alert(
+              `${mall.name}\n키워드: ${
+                mall.keyword || "-"
+              }\n최근 수집: ${
+                mall.last_collected_at
+                  ? new Date(mall.last_collected_at).toLocaleString()
+                  : "-"
+              }`
+            );
+          });
+
+          targetList.appendChild(card);
+        });
+      }
+
+      // --------------------------
+      // 수집된 쇼핑몰 불러오기
+      // --------------------------
+      async function loadMalls(forSecondTab = false) {
+        try {
+          let sortBy = "recent";
+          let keyword = "";
+
+          if (forSecondTab) {
+            sortBy = mallSortSelect.value;
+            keyword = mallFilterInput.value.trim();
+          }
+
+          const params = new URLSearchParams();
+          if (sortBy) params.append("sort_by", sortBy);
+          if (keyword) params.append("keyword", keyword);
+
+          const res = await fetch(
+            `${API_BASE}/api/malls?${params.toString()}`
+          );
+          if (!res.ok) throw new Error("응답 실패");
+          const malls = await res.json();
+
+          if (!forSecondTab) {
+            renderMallList(malls, mallList, mallEmpty);
+          } else {
+            renderMallList(malls, mallList2, mallEmpty2);
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      }
+
+      // --------------------------
+      // BEST소싱 폼 전송
+      // --------------------------
+      const collectForm = document.getElementById("collectForm");
+      collectForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const keyword = document.getElementById("keywordInput").value.trim();
+        const minPrice = document.getElementById("minPriceInput").value;
+        const maxPrice = document.getElementById("maxPriceInput").value;
+
+        if (!keyword) {
+          alert("키워드를 입력해 주세요.");
+          return;
+        }
+
+        const body = {
+          keyword,
+          min_price: minPrice ? Number(minPrice) : null,
+          max_price: maxPrice ? Number(maxPrice) : null,
+        };
+
+        try {
+          const res = await fetch(`${API_BASE}/api/smartstore/collect`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          if (!res.ok) throw new Error("수집 요청 실패");
+
+          await res.json(); // 응답은 지금은 안 써도 됨
+
+          // 수집 후 BEST 탭 목록 다시 불러오기
+          await loadMalls(false);
+          alert("쇼핑몰 수집이 완료되었습니다. (현재는 더미 데이터)");
+        } catch (err) {
+          console.error(err);
+          alert("수집 중 오류가 발생했습니다.");
+        }
+      });
+
+      // --------------------------
+      // 수집된 쇼핑몰 탭 버튼들 이벤트
+      // --------------------------
+      mallReloadBtn.addEventListener("click", () => loadMalls(true));
+
+      mallSortSelect.addEventListener("change", () => loadMalls(true));
+
+      mallFilterInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          loadMalls(true);
+        }
+      });
+
+      mallClearBtn.addEventListener("click", async () => {
+        if (!confirm("정말 전체 삭제할까요?")) return;
+
+        try {
+          const res = await fetch(`${API_BASE}/api/malls`, {
+            method: "DELETE",
+          });
+          if (!res.ok) throw new Error("삭제 실패");
+
+          await loadMalls(false);
+          await loadMalls(true);
+          alert("전체 쇼핑몰이 삭제되었습니다.");
+        } catch (err) {
+          console.error(err);
+          alert("삭제 중 오류가 발생했습니다.");
+        }
+      });
+
+      // 처음 로드 시 BEST 탭 목록 한 번 불러오기
+      loadMalls(false);
+    </script>
+  </body>
+</html>
