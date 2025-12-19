@@ -1,756 +1,159 @@
-<!DOCTYPE html>
-<html lang="ko">
-  <head>
-    <meta charset="UTF-8" />
-    <title>업소싱 도구 - 쇼핑몰 수집</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <style>
-      * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-      }
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
-          sans-serif;
-        background: #f5f7fb;
-        color: #222;
-      }
+<script>
+  const dot = document.getElementById("dot");
+  const statusText = document.getElementById("statusText");
+  const subText = document.getElementById("subText");
+  const btnStart = document.getElementById("btnStart");
+  const count = document.getElementById("count");
+  const count2 = document.getElementById("count2");
+  const rightInfo = document.getElementById("rightInfo");
+  const grid = document.getElementById("grid");
+  const grid2 = document.getElementById("grid2");
 
-      header {
-        background: linear-gradient(90deg, #ffb74d, #ff7043);
-        padding: 14px 32px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        color: #fff;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        position: sticky;
-        top: 0;
-        z-index: 10;
-      }
+  let malls = [];
 
-      .logo {
-        font-size: 18px;
-        font-weight: 700;
-        letter-spacing: 0.03em;
-      }
+  // tabs
+  document.querySelectorAll(".tab").forEach(t => {
+    t.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
+      t.classList.add("active");
+      const key = t.dataset.tab;
+      document.querySelectorAll("[id^='tab-']").forEach(p => p.classList.add("hidden"));
+      document.getElementById("tab-" + key).classList.remove("hidden");
+    });
+  });
 
-      nav {
-        display: flex;
-        gap: 8px;
-      }
+  function toNum(v) {
+    const n = Number(String(v || "").replace(/[^\d]/g, ""));
+    return Number.isFinite(n) ? n : null;
+  }
 
-      .nav-btn {
-        border: none;
-        background: rgba(255, 255, 255, 0.15);
-        color: #fff;
-        padding: 8px 14px;
-        border-radius: 999px;
-        font-size: 13px;
-        cursor: pointer;
-        transition: background 0.15s ease, transform 0.05s ease;
-      }
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, (c) => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+    }[c]));
+  }
 
-      .nav-btn:hover {
-        background: rgba(255, 255, 255, 0.25);
-        transform: translateY(-1px);
-      }
+  function normalizeSmartstoreHome(urlStr) {
+    try {
+      const u = new URL(urlStr);
+      if (!u.hostname.includes("smartstore.naver.com")) return urlStr;
+      const seg = u.pathname.split("/").filter(Boolean);
+      if (seg.length === 0) return urlStr;
+      return `${u.origin}/${seg[0]}`;
+    } catch {
+      return urlStr || "";
+    }
+  }
 
-      .nav-btn.active {
-        background: #fff;
-        color: #ff7043;
-        font-weight: 600;
-      }
+  function getMallHome(m) {
+    if (m.mallUrl) return normalizeSmartstoreHome(m.mallUrl);
+    return "";
+  }
 
-      .container {
-        max-width: 1120px;
-        margin: 24px auto 40px;
-        padding: 0 16px;
-      }
+  function renderCards(targetGrid, list) {
+    targetGrid.innerHTML = "";
 
-      .section {
-        display: none;
-      }
+    list.forEach((m) => {
+      const home = getMallHome(m);
 
-      .section.active {
-        display: block;
-      }
+      const div = document.createElement("div");
+      div.className = "card";
 
-      .section-title {
-        font-size: 18px;
-        font-weight: 600;
-        margin-bottom: 12px;
-      }
+      div.innerHTML = `
+        ${home ? `
+          
+            href="${escapeHtml(home)}"
+            target="_blank"
+            rel="noopener noreferrer"
+            style="position:absolute; inset:0; z-index:5;"
+            aria-label="open mall"
+          ></a>
+        ` : ""}
 
-      .section-sub {
-        font-size: 13px;
-        color: #777;
-        margin-bottom: 20px;
-      }
-
-      .best-form {
-        background: #ffffff;
-        border-radius: 14px;
-        padding: 18px 20px;
-        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
-        margin-bottom: 12px;
-        display: grid;
-        grid-template-columns: 2.5fr 1fr 1fr auto;
-        gap: 10px;
-        align-items: center;
-      }
-
-      .field-group {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-      }
-
-      .field-label {
-        font-size: 11px;
-        color: #666;
-      }
-
-      .field-input {
-        height: 34px;
-        border-radius: 8px;
-        border: 1px solid #d0d7e2;
-        padding: 0 10px;
-        font-size: 13px;
-      }
-
-      .field-input:focus {
-        outline: none;
-        border-color: #ff7043;
-        box-shadow: 0 0 0 2px rgba(255, 112, 67, 0.16);
-      }
-
-      .btn-primary {
-        border: none;
-        height: 36px;
-        padding: 0 18px;
-        border-radius: 999px;
-        background: #ff7043;
-        color: #fff;
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-        white-space: nowrap;
-        transition: background 0.15s ease, transform 0.05s ease;
-      }
-
-      .btn-primary:hover {
-        background: #ff5722;
-        transform: translateY(-1px);
-      }
-
-      .btn-sub {
-        border: none;
-        height: 32px;
-        padding: 0 12px;
-        border-radius: 999px;
-        background: #e3f2fd;
-        color: #1565c0;
-        font-size: 12px;
-        cursor: pointer;
-        white-space: nowrap;
-      }
-
-      .btn-danger {
-        border: none;
-        height: 32px;
-        padding: 0 12px;
-        border-radius: 999px;
-        background: #ef5350;
-        color: #fff;
-        font-size: 12px;
-        cursor: pointer;
-        white-space: nowrap;
-      }
-
-      .mall-list {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-        gap: 14px;
-      }
-
-      .mall-card {
-        background: #ffffff;
-        border-radius: 14px;
-        padding: 14px 14px 12px;
-        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        cursor: pointer;
-        transition: transform 0.06s ease, box-shadow 0.1s ease;
-        text-decoration: none;
-        color: inherit;
-      }
-
-      .mall-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.09);
-      }
-
-      .mall-card.disabled {
-        cursor: default;
-        opacity: 0.72;
-      }
-      .mall-card.disabled:hover {
-        transform: none;
-        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
-      }
-
-      .mall-logo {
-        width: 48px;
-        height: 48px;
-        border-radius: 12px;
-        background: #f0f2f7;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
-        flex-shrink: 0;
-      }
-
-      .mall-logo img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-      }
-
-      .mall-info {
-        flex: 1;
-        min-width: 0;
-      }
-
-      .mall-name {
-        font-size: 14px;
-        font-weight: 600;
-        margin-bottom: 4px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-
-      .mall-meta {
-        font-size: 11px;
-        color: #888;
-        line-height: 1.35;
-      }
-
-      .mall-tag {
-        font-size: 11px;
-        color: #ff7043;
-        background: rgba(255, 112, 67, 0.08);
-        border-radius: 999px;
-        padding: 2px 8px;
-        display: inline-block;
-        margin-top: 6px;
-      }
-
-      .badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 3px 10px;
-        border-radius: 999px;
-        background: #e3f2fd;
-        color: #1976d2;
-        font-size: 11px;
-      }
-
-      .badge-dot {
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        background: #4caf50;
-      }
-
-      .badge-dot.red {
-        background: #ef5350;
-      }
-
-      .empty-text {
-        font-size: 13px;
-        color: #999;
-        padding: 18px 4px;
-      }
-
-      .mall-toolbar {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        align-items: center;
-        margin-bottom: 12px;
-      }
-
-      .mall-toolbar input {
-        height: 32px;
-        border-radius: 999px;
-        border: 1px solid #d0d7e2;
-        padding: 0 12px;
-        font-size: 12px;
-        min-width: 180px;
-      }
-
-      .mall-toolbar select {
-        height: 32px;
-        border-radius: 999px;
-        border: 1px solid #d0d7e2;
-        padding: 0 10px;
-        font-size: 12px;
-      }
-
-      .stub-box {
-        background: #ffffff;
-        border-radius: 14px;
-        padding: 18px 20px;
-        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
-        font-size: 13px;
-        color: #666;
-      }
-
-      .status-row {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-        align-items: center;
-        margin-bottom: 12px;
-      }
-
-      .status-text {
-        font-size: 12px;
-        color: #666;
-      }
-
-      @media (max-width: 800px) {
-        .best-form {
-          grid-template-columns: 1fr;
-        }
-
-        header {
-          padding: 10px 14px;
-        }
-
-        nav {
-          gap: 4px;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <header>
-      <div class="logo">업소싱 도구 · 해외구매대행 소싱</div>
-      <nav>
-        <button class="nav-btn active" data-target="best">BEST소싱</button>
-        <button class="nav-btn" data-target="malls">수집된 쇼핑몰</button>
-        <button class="nav-btn" data-target="upload">상품 업로드</button>
-        <button class="nav-btn" data-target="settings">설정</button>
-      </nav>
-    </header>
-
-    <main class="container">
-      <section id="section-best" class="section active">
-        <h2 class="section-title">스마트스토어 BEST 소싱</h2>
-        <p class="section-sub">
-          키워드를 입력하면, 확장프로그램이 네이버쇼핑을 열고 상품을 수집한 뒤 결과를
-          이 화면으로 돌려줍니다.
-        </p>
-
-        <form id="collectForm" class="best-form">
-          <div class="field-group">
-            <span class="field-label">검색 키워드</span>
-            <input
-              type="text"
-              id="keywordInput"
-              class="field-input"
-              placeholder="예: 겨울신발, 스타킹, 니트, 남자 맨투맨"
-              required
-            />
-          </div>
-
-          <div class="field-group">
-            <span class="field-label">최소 가격</span>
-            <input
-              type="number"
-              id="minPriceInput"
-              class="field-input"
-              placeholder="예: 10000"
-            />
-          </div>
-
-          <div class="field-group">
-            <span class="field-label">최대 가격</span>
-            <input
-              type="number"
-              id="maxPriceInput"
-              class="field-input"
-              placeholder="예: 200000"
-            />
-          </div>
-
-          <button id="collectBtn" type="submit" class="btn-primary">
-            쇼핑몰 수집
-          </button>
-        </form>
-
-        <div class="status-row">
-          <span id="extBadge" class="badge">
-            <span id="extDot" class="badge-dot red"></span>
-            <span id="extText">확장프로그램 연결 확인 중...</span>
-          </span>
-          <span class="status-text" id="runText"></span>
+        <div class="logo">P</div>
+        <div style="min-width:0;flex:1;pointer-events:none">
+          <div class="mall">${escapeHtml(m.mallName || "SMARTSTORE")}</div>
+          <div class="meta">수집 상품: ${m.count ?? 1}개</div>
+          <div class="tag">NAVER SHOPPING</div>
+          ${!home ? `<div class="debug">쇼핑몰 URL 없음</div>` : ``}
         </div>
+      `;
 
-        <div id="mallList" class="mall-list"></div>
-        <div id="mallEmpty" class="empty-text" style="display: none">
-          아직 수집된 쇼핑몰이 없습니다. 키워드를 입력하고
-          <strong>쇼핑몰 수집</strong> 버튼을 눌러주세요.
-        </div>
-      </section>
+      targetGrid.appendChild(div);
+    });
+  }
 
-      <section id="section-malls" class="section">
-        <h2 class="section-title">수집된 쇼핑몰</h2>
-        <p class="section-sub">현재는 “이번 실행 결과”를 임시로 보여줍니다.</p>
+  // 메시지 수신
+  window.addEventListener("message", (e) => {
+    const msg = e.data;
+    if (!msg || typeof msg !== "object") return;
 
-        <div class="mall-toolbar">
-          <input
-            type="text"
-            id="mallFilterInput"
-            placeholder="키워드 또는 쇼핑몰명 검색"
-          />
-          <select id="mallSortSelect">
-            <option value="recent">최근 수집순</option>
-            <option value="name">이름 순</option>
-          </select>
-          <button id="mallReloadBtn" class="btn-sub">새로고침</button>
-          <button id="mallClearBtn" class="btn-danger">전체 삭제</button>
-        </div>
+    console.log("index.html received:", msg);
 
-        <div id="mallList2" class="mall-list"></div>
-        <div id="mallEmpty2" class="empty-text" style="display: none">
-          아직 수집된 쇼핑몰이 없습니다.
-        </div>
-      </section>
+    // 상태 업데이트
+    if (msg.type === "UPS_STATUS") {
+      dot.className = "dot ok";
+      statusText.textContent = "수집 진행 중...";
+      subText.textContent = `단계: ${msg.stage || "-"} | 페이지: ${msg.page || "-"}`;
+      if (msg.keyword) rightInfo.textContent = `키워드: ${msg.keyword}`;
+    }
 
-      <section id="section-upload" class="section">
-        <h2 class="section-title">상품 업로드 (준비중)</h2>
-        <p class="section-sub">
-          이후 단계에서 업로드 대기 상품 리스트 / 상세 편집 / 업로드 버튼 등을 구성합니다.
-        </p>
-        <div class="stub-box">
-          · 지금은 BEST소싱 → 수집/표시 흐름을 먼저 완성하는 단계입니다.
-        </div>
-      </section>
-
-      <section id="section-settings" class="section">
-        <h2 class="section-title">설정 (준비중)</h2>
-        <p class="section-sub">마진율, 출고 소요일, API 키 등을 관리하는 영역입니다.</p>
-        <div class="stub-box">· 현재는 UI 뼈대만 있습니다.</div>
-      </section>
-    </main>
-
-    <script>
-      // --------------------------
-      // 탭 전환
-      // --------------------------
-      const navButtons = document.querySelectorAll(".nav-btn");
-      const sections = {
-        best: document.getElementById("section-best"),
-        malls: document.getElementById("section-malls"),
-        upload: document.getElementById("section-upload"),
-        settings: document.getElementById("section-settings"),
-      };
-
-      navButtons.forEach((btn) => {
-        btn.addEventListener("click", () => {
-          navButtons.forEach((b) => b.classList.remove("active"));
-          btn.classList.add("active");
-
-          const target = btn.dataset.target;
-          Object.keys(sections).forEach((key) => {
-            sections[key].classList.toggle("active", key === target);
-          });
-
-          if (target === "malls") {
-            renderSecondTabFromLastRun();
-          }
-        });
-      });
-
-      // --------------------------
-      // UI 엘리먼트
-      // --------------------------
-      const mallList = document.getElementById("mallList");
-      const mallEmpty = document.getElementById("mallEmpty");
-      const mallList2 = document.getElementById("mallList2");
-      const mallEmpty2 = document.getElementById("mallEmpty2");
-
-      const collectBtn = document.getElementById("collectBtn");
-      const extDot = document.getElementById("extDot");
-      const extText = document.getElementById("extText");
-      const runText = document.getElementById("runText");
-
-      const mallFilterInput = document.getElementById("mallFilterInput");
-      const mallSortSelect = document.getElementById("mallSortSelect");
-      const mallReloadBtn = document.getElementById("mallReloadBtn");
-      const mallClearBtn = document.getElementById("mallClearBtn");
-
-      // --------------------------
-      // 상태 저장(이번 실행 결과 임시)
-      // --------------------------
-      let lastRun = null;
-
-      // --------------------------
-      // 유틸
-      // --------------------------
-      function escapeHtml(str) {
-        return String(str ?? "")
-          .replaceAll("&", "&amp;")
-          .replaceAll("<", "&lt;")
-          .replaceAll(">", "&gt;")
-          .replaceAll('"', "&quot;")
-          .replaceAll("'", "&#039;");
+    // 수집 완료
+    if (msg.type === "UPS_DONE") {
+      console.log("UPS_DONE received:", msg);
+      
+      if (!msg.ok) {
+        dot.className = "dot bad";
+        statusText.textContent = "수집 실패";
+        subText.textContent = msg.error || "알 수 없는 오류";
+        btnStart.disabled = false;
+        btnStart.textContent = "수집 시작";
+        return;
       }
 
-      function safeUrl(url) {
-        const u = (url || "").trim();
-        if (!u) return "";
-        if (u.startsWith("http://") || u.startsWith("https://")) return u;
-        return "";
-      }
+      const mallsList = msg.malls || [];
+      malls = mallsList;
 
-      // --------------------------
-      // 카드 렌더
-      // items: [{ title, price, mallName, productUrl, imageUrl ... }]
-      // --------------------------
-      function renderItemsAsMalls(items, targetList, emptyEl) {
-        targetList.innerHTML = "";
+      console.log("Rendering malls:", mallsList);
 
-        if (!items || items.length === 0) {
-          emptyEl.style.display = "block";
-          return;
-        }
-        emptyEl.style.display = "none";
+      count.textContent = String(mallsList.length);
+      count2.textContent = String(mallsList.length);
 
-        items.forEach((it) => {
-          const name = it.mallName || it.mall_name || it.mall || it.seller || "UNKNOWN";
-          const title = it.title || it.product_title || it.name || "-";
-          const price = it.price || it.product_price || "-";
+      renderCards(grid, mallsList);
+      renderCards(grid2, mallsList);
 
-          const img =
-            it.imageUrl ||
-            it.image_url ||
-            it.image ||
-            "https://placehold.co/64x64?text=P";
+      dot.className = "dot ok";
+      statusText.textContent = "수집 완료!";
+      subText.textContent = `총 ${mallsList.length}개 쇼핑몰 수집`;
+      btnStart.disabled = false;
+      btnStart.textContent = "수집 시작";
+    }
+  });
 
-          const url = safeUrl(
-            it.productUrl ||
-              it.product_url ||
-              it.url ||
-              it.link ||
-              it.href ||
-              ""
-          );
+  // 수집 시작
+  document.getElementById("form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const keyword = document.getElementById("keyword").value.trim();
+    if (!keyword) return;
 
-          // ✅ a 태그로 만들기 (클릭 안정화)
-          const card = document.createElement("a");
-          card.className = "mall-card";
-          card.target = "_blank";
-          card.rel = "noopener noreferrer";
+    const maxPage = toNum(document.getElementById("maxPage").value) || 4;
+    const minPrice = toNum(document.getElementById("minPrice").value);
+    const maxPrice = toNum(document.getElementById("maxPrice").value);
 
-          if (url) {
-            card.href = url;
-          } else {
-            card.href = "javascript:void(0)";
-            card.classList.add("disabled");
-          }
+    grid.innerHTML = "";
+    count.textContent = "0";
+    dot.className = "dot";
+    statusText.textContent = "수집 시작...";
+    subText.textContent = "";
+    btnStart.disabled = true;
+    btnStart.textContent = "수집 중...";
 
-          card.innerHTML = `
-            <div class="mall-logo">
-              <img src="${escapeHtml(img)}" alt="img" loading="lazy" onerror="this.src='https://placehold.co/64x64?text=P'">
-            </div>
-            <div class="mall-info">
-              <div class="mall-name">${escapeHtml(name)}</div>
-              <div class="mall-meta">
-                ${escapeHtml(title)}<br/>
-                가격: ${escapeHtml(price)}
-              </div>
-              <div class="mall-tag">NAVER SHOPPING</div>
-            </div>
-          `;
-
-          targetList.appendChild(card);
-        });
-      }
-
-      function renderSecondTabFromLastRun() {
-        if (!lastRun || !lastRun.items) {
-          renderItemsAsMalls([], mallList2, mallEmpty2);
-          return;
-        }
-
-        let items = [...lastRun.items];
-
-        // 필터
-        const q = (mallFilterInput.value || "").trim().toLowerCase();
-        if (q) {
-          items = items.filter((it) => {
-            const blob = JSON.stringify(it).toLowerCase();
-            return blob.includes(q);
-          });
-        }
-
-        // 정렬
-        const sort = mallSortSelect.value;
-        if (sort === "name") {
-          items.sort((a, b) => {
-            const an = (a.mallName || a.mall_name || "").toLowerCase();
-            const bn = (b.mallName || b.mall_name || "").toLowerCase();
-            return an.localeCompare(bn);
-          });
-        }
-
-        renderItemsAsMalls(items, mallList2, mallEmpty2);
-      }
-
-      // --------------------------
-      // 확장프로그램 안내(기본)
-      // --------------------------
-      function checkExtensionBridge() {
-        extDot.classList.add("red");
-        extText.textContent = "확장프로그램이 설치되어 있어야 동작합니다.";
-      }
-      checkExtensionBridge();
-
-      // --------------------------
-      // UPS_RESULT 수신 (확장 -> site)
-      // --------------------------
-      window.addEventListener("message", (e) => {
-        if (!e || !e.data) return;
-
-        if (e.data.type === "UPS_RESULT") {
-          const payload = e.data.payload || {};
-          console.log("[SITE] UPS_RESULT:", payload);
-
-          const ok = !!payload.ok;
-          if (!ok) {
-            alert("수집 실패: " + (payload.error || "unknown"));
-            collectBtn.disabled = false;
-            collectBtn.textContent = "쇼핑몰 수집";
-            return;
-          }
-
-          // ✅ 중요: payload.malls(그룹) -> items로 평탄화(flatten)
-          let normalizedItems = [];
-
-          if (Array.isArray(payload.items) && payload.items.length) {
-            normalizedItems = payload.items;
-          } else if (Array.isArray(payload.products) && payload.products.length) {
-            normalizedItems = payload.products;
-          } else if (Array.isArray(payload.malls) && payload.malls.length) {
-            normalizedItems = payload.malls.flatMap((m) => {
-              const mallName = m.mallName || m.mall_name || m.mall || m.seller || "UNKNOWN";
-              const arr = Array.isArray(m.items) ? m.items : [];
-              return arr.map((it) => ({ ...it, mallName }));
-            });
-          }
-
-          // 연결 표시
-          extDot.classList.remove("red");
-          extDot.style.background = "#4caf50";
-          extText.textContent = "확장프로그램 연결됨 ✅";
-          runText.textContent = `총 ${payload.totalItems ?? normalizedItems.length}개 수집`;
-
-          lastRun = {
-            keyword: payload.keyword || "",
-            items: normalizedItems,
-            pages: payload.pages || [],
-            totalItems: payload.totalItems ?? normalizedItems.length,
-            ts: Date.now(),
-          };
-
-          renderItemsAsMalls(lastRun.items, mallList, mallEmpty);
-
-          collectBtn.disabled = false;
-          collectBtn.textContent = "쇼핑몰 수집";
-        }
-      });
-
-      // --------------------------
-      // BEST소싱 폼 전송: 확장프로그램 start
-      // --------------------------
-      const collectForm = document.getElementById("collectForm");
-      collectForm.addEventListener("submit", (e) => {
-        e.preventDefault();
-
-        const keyword = document.getElementById("keywordInput").value.trim();
-        const minPrice = document.getElementById("minPriceInput").value;
-        const maxPrice = document.getElementById("maxPriceInput").value;
-
-        if (!keyword) {
-          alert("키워드를 입력해 주세요.");
-          return;
-        }
-
-        // UI
-        collectBtn.disabled = true;
-        collectBtn.textContent = "수집 중...";
-        runText.textContent = "";
-        mallList.innerHTML = "";
-        mallEmpty.style.display = "none";
-
-        const startedAt = Date.now();
-
-        window.postMessage(
-          {
-            type: "UPS_START",
-            keyword,
-            maxPage: 4,
-            minPrice: minPrice ? Number(minPrice) : null,
-            maxPrice: maxPrice ? Number(maxPrice) : null,
-          },
-          "*"
-        );
-
-        // ✅ 30초로 연장
-        setTimeout(() => {
-          if (!lastRun || lastRun.ts < startedAt) {
-            collectBtn.disabled = false;
-            collectBtn.textContent = "쇼핑몰 수집";
-            alert(
-              "확장프로그램 응답이 없습니다.\n\n1) 확장프로그램 켜짐/권한 확인\n2) 페이지 새로고침 후 다시 시도\n3) 크롬 우측 상단 확장프로그램 아이콘에서 UPS가 활성인지 확인"
-            );
-          }
-        }, 30000);
-      });
-
-      // --------------------------
-      // 두번째 탭 이벤트
-      // --------------------------
-      mallReloadBtn.addEventListener("click", renderSecondTabFromLastRun);
-      mallSortSelect.addEventListener("change", renderSecondTabFromLastRun);
-
-      mallFilterInput.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          renderSecondTabFromLastRun();
-        }
-      });
-
-      mallClearBtn.addEventListener("click", async () => {
-        if (!confirm("이번 실행 결과를 화면에서 지울까요?")) return;
-        lastRun = null;
-        renderItemsAsMalls([], mallList, mallEmpty);
-        renderItemsAsMalls([], mallList2, mallEmpty2);
-        runText.textContent = "";
-      });
-
-      // 초기 화면
-      renderItemsAsMalls([], mallList, mallEmpty);
-    </script>
-  </body>
-</html>
+    window.postMessage({
+      type: "UPS_START",
+      keyword,
+      maxPage,
+      minPrice,
+      maxPrice
+    }, "*");
+  });
+</script>
