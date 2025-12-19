@@ -1,159 +1,218 @@
-<script>
-  const dot = document.getElementById("dot");
-  const statusText = document.getElementById("statusText");
-  const subText = document.getElementById("subText");
-  const btnStart = document.getElementById("btnStart");
-  const count = document.getElementById("count");
-  const count2 = document.getElementById("count2");
-  const rightInfo = document.getElementById("rightInfo");
-  const grid = document.getElementById("grid");
-  const grid2 = document.getElementById("grid2");
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>업소싱 도구 - BEST 소싱</title>
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#f5f7fb}
+    .topbar{background:linear-gradient(90deg,#ff8a5c,#ff6f91);padding:18px 18px 22px;color:#fff}
+    .wrap{max-width:1100px;margin:0 auto}
+    .tabs{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}
+    .tab{padding:10px 14px;border-radius:999px;background:rgba(255,255,255,.22);cursor:pointer;user-select:none;font-weight:700;font-size:14px}
+    .tab.active{background:#fff;color:#ff5f7a}
+    main{max-width:1100px;margin:26px auto;padding:0 18px}
+    .panel{background:#fff;border-radius:16px;padding:22px;box-shadow:0 10px 24px rgba(0,0,0,.06)}
+    h2{margin:0 0 6px 0}
+    .desc{color:#666;margin:0 0 16px 0}
+    form{display:flex;gap:10px;flex-wrap:wrap}
+    input{height:42px;border:1px solid #e6e8ef;border-radius:10px;padding:0 12px;outline:none;min-width:240px}
+    .w-key{flex:1}
+    button{height:42px;border:0;border-radius:999px;padding:0 16px;cursor:pointer;font-weight:800}
+    .btn{background:#ff6f91;color:#fff}
+    .btn:disabled{opacity:.55;cursor:not-allowed}
+    .status{margin-top:12px;color:#777;font-size:14px;display:flex;align-items:center;gap:8px}
+    .dot{width:10px;height:10px;border-radius:50%;background:#bbb}
+    .dot.ok{background:#22c55e}
+    .dot.bad{background:#ef4444}
+    .sub{margin-top:6px;color:#999;font-size:13px;white-space:pre-line}
+    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:16px}
+    @media (max-width:980px){.grid{grid-template-columns:repeat(2,1fr)}}
+    @media (max-width:560px){.grid{grid-template-columns:1fr}}
+    .card{border:1px solid #eef0f6;border-radius:14px;padding:14px;display:flex;gap:12px;align-items:flex-start;position:relative;background:#fff}
+    .card:hover{border-color:#ffd1dc;box-shadow:0 6px 16px rgba(0,0,0,.05)}
+    .logo{width:46px;height:46px;border-radius:12px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-weight:900;color:#444;flex:0 0 auto}
+    .mall{font-weight:900}
+    .meta{margin-top:4px;font-size:12px;color:#777}
+    .tag{display:inline-block;margin-top:8px;font-size:12px;font-weight:800;padding:6px 10px;border-radius:999px;background:#ffe6ee;color:#d81b60}
+    .hidden{display:none}
+    .row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+    .right{color:#777;font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="wrap">
+      <div style="font-weight:900">업소싱 도구 · 해외구매대행 소싱</div>
+      <div class="tabs">
+        <div class="tab active" data-tab="best">BEST소싱</div>
+        <div class="tab" data-tab="malls">수집된 쇼핑몰</div>
+        <div class="tab" data-tab="upload">상품 업로드</div>
+        <div class="tab" data-tab="settings">설정</div>
+      </div>
+    </div>
+  </div>
 
-  let malls = [];
+  <main>
+    <div class="panel" id="tab-best">
+      <h2>스마트스토어 BEST 소싱</h2>
+      <p class="desc">키워드를 입력하면 확장프로그램이 네이버쇼핑을 열고 상품을 수집한 뒤 결과를 이 화면으로 돌려줍니다.</p>
 
-  // tabs
-  document.querySelectorAll(".tab").forEach(t => {
-    t.addEventListener("click", () => {
-      document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
-      t.classList.add("active");
-      const key = t.dataset.tab;
-      document.querySelectorAll("[id^='tab-']").forEach(p => p.classList.add("hidden"));
-      document.getElementById("tab-" + key).classList.remove("hidden");
+      <form id="form">
+        <input class="w-key" id="keyword" placeholder="키워드 (예: 여자 겨울 부츠)" required />
+        <input id="minPrice" placeholder="최소 가격 (예: 10000)" inputmode="numeric" />
+        <input id="maxPrice" placeholder="최대 가격 (예: 200000)" inputmode="numeric" />
+        <input id="maxPage" placeholder="페이지 수 (기본 4)" inputmode="numeric" />
+        <button class="btn" id="btnStart" type="submit">수집 시작</button>
+      </form>
+
+      <div class="status">
+        <div class="dot" id="dot"></div>
+        <div id="statusText">확장프로그램 연결 확인 중…</div>
+      </div>
+      <div class="sub" id="subText"></div>
+
+      <div class="row" style="margin-top:14px">
+        <div style="font-weight:900">총 <span id="count">0</span>개 수집됨</div>
+        <div class="right" id="rightInfo"></div>
+      </div>
+
+      <div class="grid" id="grid"></div>
+    </div>
+
+    <div class="panel hidden" id="tab-malls">
+      <h2>수집된 쇼핑몰</h2>
+      <p class="desc">카드 클릭 시 쇼핑몰 홈을 새 탭으로 엽니다.</p>
+      <div class="row">
+        <div style="font-weight:900">총 <span id="count2">0</span>개</div>
+      </div>
+      <div class="grid" id="grid2"></div>
+    </div>
+
+    <div class="panel hidden" id="tab-upload">
+      <h2>상품 업로드</h2>
+      <p class="desc">추후 기능 추가 예정</p>
+    </div>
+
+    <div class="panel hidden" id="tab-settings">
+      <h2>설정</h2>
+      <p class="desc">추후 기능 추가 예정</p>
+    </div>
+  </main>
+
+  <script>
+    var dot = document.getElementById("dot");
+    var statusText = document.getElementById("statusText");
+    var subText = document.getElementById("subText");
+    var btnStart = document.getElementById("btnStart");
+    var count = document.getElementById("count");
+    var count2 = document.getElementById("count2");
+    var rightInfo = document.getElementById("rightInfo");
+    var grid = document.getElementById("grid");
+    var grid2 = document.getElementById("grid2");
+
+    var malls = [];
+
+    document.querySelectorAll(".tab").forEach(function(t) {
+      t.addEventListener("click", function() {
+        document.querySelectorAll(".tab").forEach(function(x) { x.classList.remove("active"); });
+        t.classList.add("active");
+        var key = t.dataset.tab;
+        document.querySelectorAll("[id^='tab-']").forEach(function(p) { p.classList.add("hidden"); });
+        document.getElementById("tab-" + key).classList.remove("hidden");
+      });
     });
-  });
 
-  function toNum(v) {
-    const n = Number(String(v || "").replace(/[^\d]/g, ""));
-    return Number.isFinite(n) ? n : null;
-  }
-
-  function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, (c) => ({
-      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
-    }[c]));
-  }
-
-  function normalizeSmartstoreHome(urlStr) {
-    try {
-      const u = new URL(urlStr);
-      if (!u.hostname.includes("smartstore.naver.com")) return urlStr;
-      const seg = u.pathname.split("/").filter(Boolean);
-      if (seg.length === 0) return urlStr;
-      return `${u.origin}/${seg[0]}`;
-    } catch {
-      return urlStr || "";
-    }
-  }
-
-  function getMallHome(m) {
-    if (m.mallUrl) return normalizeSmartstoreHome(m.mallUrl);
-    return "";
-  }
-
-  function renderCards(targetGrid, list) {
-    targetGrid.innerHTML = "";
-
-    list.forEach((m) => {
-      const home = getMallHome(m);
-
-      const div = document.createElement("div");
-      div.className = "card";
-
-      div.innerHTML = `
-        ${home ? `
-          
-            href="${escapeHtml(home)}"
-            target="_blank"
-            rel="noopener noreferrer"
-            style="position:absolute; inset:0; z-index:5;"
-            aria-label="open mall"
-          ></a>
-        ` : ""}
-
-        <div class="logo">P</div>
-        <div style="min-width:0;flex:1;pointer-events:none">
-          <div class="mall">${escapeHtml(m.mallName || "SMARTSTORE")}</div>
-          <div class="meta">수집 상품: ${m.count ?? 1}개</div>
-          <div class="tag">NAVER SHOPPING</div>
-          ${!home ? `<div class="debug">쇼핑몰 URL 없음</div>` : ``}
-        </div>
-      `;
-
-      targetGrid.appendChild(div);
-    });
-  }
-
-  // 메시지 수신
-  window.addEventListener("message", (e) => {
-    const msg = e.data;
-    if (!msg || typeof msg !== "object") return;
-
-    console.log("index.html received:", msg);
-
-    // 상태 업데이트
-    if (msg.type === "UPS_STATUS") {
-      dot.className = "dot ok";
-      statusText.textContent = "수집 진행 중...";
-      subText.textContent = `단계: ${msg.stage || "-"} | 페이지: ${msg.page || "-"}`;
-      if (msg.keyword) rightInfo.textContent = `키워드: ${msg.keyword}`;
+    function toNum(v) {
+      var n = Number(String(v || "").replace(/[^\d]/g, ""));
+      return Number.isFinite(n) ? n : null;
     }
 
-    // 수집 완료
-    if (msg.type === "UPS_DONE") {
-      console.log("UPS_DONE received:", msg);
-      
-      if (!msg.ok) {
-        dot.className = "dot bad";
-        statusText.textContent = "수집 실패";
-        subText.textContent = msg.error || "알 수 없는 오류";
-        btnStart.disabled = false;
-        btnStart.textContent = "수집 시작";
-        return;
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, function(c) {
+        return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c];
+      });
+    }
+
+    function getMallHome(m) {
+      if (!m.mallUrl) return "";
+      try {
+        var u = new URL(m.mallUrl);
+        if (!u.hostname.includes("smartstore.naver.com")) return m.mallUrl;
+        var seg = u.pathname.split("/").filter(Boolean);
+        return seg.length ? u.origin + "/" + seg[0] : m.mallUrl;
+      } catch (e) { return m.mallUrl || ""; }
+    }
+
+    function renderCards(targetGrid, list) {
+      targetGrid.innerHTML = "";
+      list.forEach(function(m) {
+        var home = getMallHome(m);
+        var div = document.createElement("div");
+        div.className = "card";
+        div.innerHTML = 
+          (home ? '<a href="' + escapeHtml(home) + '" target="_blank" rel="noopener noreferrer" style="position:absolute;inset:0;z-index:5;" aria-label="open mall"></a>' : '') +
+          '<div class="logo">P</div>' +
+          '<div style="min-width:0;flex:1;pointer-events:none">' +
+            '<div class="mall">' + escapeHtml(m.mallName || "SMARTSTORE") + '</div>' +
+            '<div class="meta">수집 상품: ' + (m.count || 1) + '개</div>' +
+            '<div class="tag">NAVER SHOPPING</div>' +
+          '</div>';
+        targetGrid.appendChild(div);
+      });
+    }
+
+    window.addEventListener("message", function(e) {
+      var msg = e.data;
+      if (!msg || typeof msg !== "object") return;
+      console.log("index.html received:", msg);
+
+      if (msg.type === "UPS_STATUS") {
+        if (dot) dot.className = "dot ok";
+        if (statusText) statusText.textContent = "수집 진행 중...";
+        if (subText) subText.textContent = "단계: " + (msg.stage || "-") + " | 페이지: " + (msg.page || "-");
+        if (msg.keyword && rightInfo) rightInfo.textContent = "키워드: " + msg.keyword;
       }
 
-      const mallsList = msg.malls || [];
-      malls = mallsList;
+      if (msg.type === "UPS_DONE") {
+        console.log("UPS_DONE received:", msg);
+        if (!msg.ok) {
+          if (dot) dot.className = "dot bad";
+          if (statusText) statusText.textContent = "수집 실패";
+          if (subText) subText.textContent = msg.error || "오류";
+          if (btnStart) { btnStart.disabled = false; btnStart.textContent = "수집 시작"; }
+          return;
+        }
+        var mallsList = msg.malls || [];
+        malls = mallsList;
+        console.log("Rendering malls:", mallsList);
+        if (count) count.textContent = String(mallsList.length);
+        if (count2) count2.textContent = String(mallsList.length);
+        if (grid) renderCards(grid, mallsList);
+        if (grid2) renderCards(grid2, mallsList);
+        if (dot) dot.className = "dot ok";
+        if (statusText) statusText.textContent = "수집 완료!";
+        if (subText) subText.textContent = "총 " + mallsList.length + "개 쇼핑몰 수집";
+        if (btnStart) { btnStart.disabled = false; btnStart.textContent = "수집 시작"; }
+      }
+    });
 
-      console.log("Rendering malls:", mallsList);
-
-      count.textContent = String(mallsList.length);
-      count2.textContent = String(mallsList.length);
-
-      renderCards(grid, mallsList);
-      renderCards(grid2, mallsList);
-
-      dot.className = "dot ok";
-      statusText.textContent = "수집 완료!";
-      subText.textContent = `총 ${mallsList.length}개 쇼핑몰 수집`;
-      btnStart.disabled = false;
-      btnStart.textContent = "수집 시작";
-    }
-  });
-
-  // 수집 시작
-  document.getElementById("form").addEventListener("submit", (e) => {
-    e.preventDefault();
-    const keyword = document.getElementById("keyword").value.trim();
-    if (!keyword) return;
-
-    const maxPage = toNum(document.getElementById("maxPage").value) || 4;
-    const minPrice = toNum(document.getElementById("minPrice").value);
-    const maxPrice = toNum(document.getElementById("maxPrice").value);
-
-    grid.innerHTML = "";
-    count.textContent = "0";
-    dot.className = "dot";
-    statusText.textContent = "수집 시작...";
-    subText.textContent = "";
-    btnStart.disabled = true;
-    btnStart.textContent = "수집 중...";
-
-    window.postMessage({
-      type: "UPS_START",
-      keyword,
-      maxPage,
-      minPrice,
-      maxPrice
-    }, "*");
-  });
-</script>
+    document.getElementById("form").addEventListener("submit", function(e) {
+      e.preventDefault();
+      var keyword = document.getElementById("keyword").value.trim();
+      if (!keyword) return;
+      var maxPage = toNum(document.getElementById("maxPage").value) || 4;
+      var minPrice = toNum(document.getElementById("minPrice").value);
+      var maxPrice = toNum(document.getElementById("maxPrice").value);
+      if (grid) grid.innerHTML = "";
+      if (count) count.textContent = "0";
+      if (dot) dot.className = "dot";
+      if (statusText) statusText.textContent = "수집 시작...";
+      if (subText) subText.textContent = "";
+      if (btnStart) { btnStart.disabled = true; btnStart.textContent = "수집 중..."; }
+      window.postMessage({ type: "UPS_START", keyword: keyword, maxPage: maxPage, minPrice: minPrice, maxPrice: maxPrice }, "*");
+    });
+  </script>
+</body>
+</html>
